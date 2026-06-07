@@ -72,7 +72,19 @@ export function App() {
       </div>
 
       <div className="shrink-0">
-        <FlickKeyboard onEvent={handleEvent} theme={theme} mode={mode} isLineStart={isLineStart} />
+        <FlickKeyboard
+          onEvent={handleEvent}
+          theme={theme}
+          mode={mode}
+          isLineStart={isLineStart}
+          candidateBar={
+            <div
+              className={`flex h-10 items-center truncate px-3 ${theme === "dark" ? "text-white" : "text-[#1A1A1A]"}`}
+            >
+              {text}
+            </div>
+          }
+        />
       </div>
     </div>
   );

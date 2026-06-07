@@ -39,6 +39,7 @@ interface FlickKeyboardProps {
   threshold?: number;
   mode?: FlickMode;
   isLineStart?: boolean;
+  candidateBar?: React.ReactNode;
 }
 
 // ── Kana key data ──────────────────────────────────────────────────────────
@@ -615,6 +616,7 @@ function FlickKeyboard({
   threshold = 26,
   mode,
   isLineStart = false,
+  candidateBar,
 }: FlickKeyboardProps) {
   const isDark = theme === "dark";
   const isStandalone = useIsStandalone();
@@ -735,7 +737,7 @@ function FlickKeyboard({
       )}
     >
       {/* top candidate strip */}
-      <div className="h-10" />
+      {candidateBar ?? <div className="h-10" />}
 
       {/* key grid */}
       <div className="pb-3.5">
