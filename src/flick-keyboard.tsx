@@ -121,6 +121,15 @@ function DeleteIcon({ pressed }: { pressed: boolean }) {
   );
 }
 
+function ModLineStartFace() {
+  return (
+    <span className="-mt-1 flex flex-col items-center">
+      <span className="text-lg leading-none">^^</span>
+      <span className="mt-[-19px] leading-none">_</span>
+    </span>
+  );
+}
+
 function dirOf(dx: number, dy: number, threshold: number): "c" | "l" | "r" | "u" | "d" {
   if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return "c";
   if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? "l" : "r";
@@ -197,6 +206,22 @@ const ENGLISH_POS: Record<string, [number, number]> = {
 };
 
 const LETTER_KEY_IDS = new Set(["abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"]);
+
+function getDisplayFace(k: FlickKey, activeMode: FlickMode, caps: boolean): string {
+  if (activeMode === "kana") return k.id === "mod" ? "小゛゜" : (k.face ?? k.c);
+  if (activeMode === "english") {
+    if (k.id === "capsl") return caps ? "A/a" : "a/A";
+    if (LETTER_KEY_IDS.has(k.id)) return caps ? (k.face ?? k.c).toUpperCase() : (k.face ?? k.c).toLowerCase();
+    return k.face ?? k.c;
+  }
+  return k.face ?? k.c;
+}
+
+function getCellTextClass(k: FlickKey, activeMode: FlickMode): string {
+  if (activeMode === "kana") return k.id === "mod" || k.id === "kut" ? "text-[17px]" : "text-xl";
+  if (activeMode === "english") return LETTER_KEY_IDS.has(k.id) ? "text-[17px]" : "text-sm";
+  return k.id === "nbr" || k.id === "npu" ? "text-[15px]" : "text-[22px]";
+}
 
 // ── Number key data ────────────────────────────────────────────────────────
 
@@ -549,22 +574,6 @@ function FlickKeyboard({
     keyShadow,
   );
 
-  const getDisplayFace = (k: FlickKey): string => {
-    if (activeMode === "kana") return k.id === "mod" ? "小゛゜" : (k.face ?? k.c);
-    if (activeMode === "english") {
-      if (k.id === "capsl") return caps ? "A/a" : "a/A";
-      if (LETTER_KEY_IDS.has(k.id)) return caps ? (k.face ?? k.c).toUpperCase() : (k.face ?? k.c).toLowerCase();
-      return k.face ?? k.c;
-    }
-    return k.face ?? k.c;
-  };
-
-  const getCellTextClass = (k: FlickKey): string => {
-    if (activeMode === "kana") return k.id === "mod" || k.id === "kut" ? "text-[17px]" : "text-xl";
-    if (activeMode === "english") return LETTER_KEY_IDS.has(k.id) ? "text-[17px]" : "text-sm";
-    return k.id === "nbr" || k.id === "npu" ? "text-[15px]" : "text-[22px]";
-  };
-
   const contentCell = (k: FlickKey) => {
     const pos = activePosMap[k.id];
     if (!pos) return null;
@@ -584,7 +593,7 @@ function FlickKeyboard({
           className={cn(
             cellBase,
             "flex-col gap-px tracking-[0.5px] [font-variant-ligatures:none]",
-            getCellTextClass(k),
+            getCellTextClass(k, activeMode),
             down ? pressedCellClass : isDark ? "bg-[#898989] text-white" : "bg-white text-[#1A1A1A]",
           )}
           style={{
@@ -593,12 +602,9 @@ function FlickKeyboard({
           }}
         >
           {activeMode === "kana" && k.id === "mod" && isLineStart ? (
-            <span className="-mt-1 flex flex-col items-center">
-              <span className="text-lg leading-none">^^</span>
-              <span className="mt-[-19px] leading-none">_</span>
-            </span>
+            <ModLineStartFace />
           ) : (
-            <span>{getDisplayFace(k)}</span>
+            <span>{getDisplayFace(k, activeMode, caps)}</span>
           )}
 
           {k.sub && (
