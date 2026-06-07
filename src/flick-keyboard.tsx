@@ -99,6 +99,8 @@ function applyMod(ch: string): string | null {
 
 // 押下から方向プレビューが出るまでの遅延（タップ時にチラつかないよう少し長押しを要求する）
 const POPUP_DELAY_MS = 300;
+// 指を離してからクイックフリックのポップアップが消えるまでの遅延
+const QUICK_FLICK_HIDE_DELAY_MS = 80;
 
 function DeleteIcon({ pressed }: { pressed: boolean }) {
   return (
@@ -305,6 +307,7 @@ function FlickKeyboard({
   const [press, setPress] = useState<PressState | null>(null);
   const [quickFlick, setQuickFlick] = useState<QuickFlickState | null>(null);
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quickFlickHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
   const [tapId, setTapId] = useState<string | null>(null);
   const fnTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -338,7 +341,11 @@ function FlickKeyboard({
       popupTimerRef.current = null;
     }
     setPressedKeyId(null);
-    setQuickFlick(null);
+    if (quickFlickHideTimerRef.current) clearTimeout(quickFlickHideTimerRef.current);
+    quickFlickHideTimerRef.current = setTimeout(() => {
+      quickFlickHideTimerRef.current = null;
+      setQuickFlick(null);
+    }, QUICK_FLICK_HIDE_DELAY_MS);
     if (!key) return;
     const dir = s.dir;
     s.key = null;
@@ -354,6 +361,10 @@ function FlickKeyboard({
 
   const onDown = (e: React.PointerEvent, key: FlickKey) => {
     e.preventDefault();
+    if (quickFlickHideTimerRef.current) {
+      clearTimeout(quickFlickHideTimerRef.current);
+      quickFlickHideTimerRef.current = null;
+    }
     if (!gridRef.current) return;
     const g = gridRef.current.getBoundingClientRect();
     const r = e.currentTarget.getBoundingClientRect();
@@ -674,7 +685,7 @@ function FlickKeyboard({
 
       {/* key grid */}
       <div className="pb-3.5">
-        <div ref={gridRef} className="relative -m-[3px] grid grid-cols-5 grid-rows-[repeat(4,47px)]">
+        <div ref={gridRef} className="relative m-[-3px] grid grid-cols-5 grid-rows-[repeat(4,47px)]">
           {/* left column row 1 */}
           {activeMode === "kana" && fnCell({ id: "mod2", col: 1, row: 1, label: "" })}
           {activeMode !== "kana" && fnCell({ id: "fn1", col: 1, row: 1, icon: <></> })}
