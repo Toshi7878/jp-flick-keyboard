@@ -105,17 +105,19 @@ const POPUP_DELAY_MS = 300;
 // 指を離してからクイックフリックのポップアップが消えるまでの遅延
 const QUICK_FLICK_HIDE_DELAY_MS = 80;
 
-function DeleteIcon({ pressed }: { pressed: boolean }) {
+function DeleteIcon({ pressed, isDark }: { pressed: boolean; isDark: boolean }) {
   return (
     <svg aria-label="delete" className="h-6 w-6" role="img" viewBox="0 0 28 24">
       <path
-        className={cn(pressed ? "fill-black stroke-black" : "fill-none stroke-current")}
+        className={cn(
+          pressed ? (isDark ? "fill-white stroke-white" : "fill-black stroke-black") : "fill-none stroke-current",
+        )}
         d="M10.4 4.5h12.3a2.8 2.8 0 0 1 2.8 2.8v9.4a2.8 2.8 0 0 1-2.8 2.8H10.4a2.3 2.3 0 0 1-1.7-.8L2.8 12l5.9-6.7a2.3 2.3 0 0 1 1.7-.8Z"
         strokeLinejoin="round"
         strokeWidth="2"
       />
       <path
-        className={cn(pressed ? "stroke-white" : "stroke-current")}
+        className={cn(pressed ? (isDark ? "stroke-black" : "stroke-white") : "stroke-current")}
         d="m14.1 9.1 5.8 5.8m0-5.8-5.8 5.8"
         strokeLinecap="round"
         strokeWidth="2.2"
@@ -458,7 +460,7 @@ function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: 
         )}
         style={{ filter: isPressed ? "brightness(0.9)" : undefined }}
       >
-        {id === "del" ? <DeleteIcon pressed={isPressed} /> : (icon ?? label)}
+        {id === "del" ? <DeleteIcon pressed={isPressed} isDark={theme === "dark"} /> : (icon ?? label)}
       </div>
     </div>
   );
