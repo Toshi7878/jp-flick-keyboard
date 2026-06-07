@@ -1,9 +1,12 @@
 "use client";
 
+import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "./cn";
 
 // ── Types ──────────────────────────────────────────────────────────────────
+
+type CellTheme = "light" | "dark";
 
 type FlickMode = "kana" | "english" | "number";
 
@@ -31,7 +34,7 @@ type FlickEvent =
 interface FlickKeyboardProps {
   keys?: FlickKey[];
   onEvent: (event: FlickEvent) => void;
-  theme?: "light" | "dark";
+  theme?: CellTheme;
   flickStyle?: "cross";
   threshold?: number;
   mode?: FlickMode;
@@ -273,6 +276,194 @@ const ROW_START: Record<number, string> = {
   4: "row-start-4",
 };
 
+// ── cell style variants ────────────────────────────────────────────────────
+// テーマ(light/dark)・押下状態・アクセント表示の組み合わせで決まるセルの見た目を cva で定義する。
+
+const cellShellVariants = cva(
+  "flex h-full w-full items-center justify-center rounded-[7px] [transition:filter_90ms,transform_60ms]",
+  {
+    variants: {
+      theme: {
+        light: "shadow-[0_1px_0_rgba(0,0,0,0.30)]",
+        dark: "shadow-[0_1px_2px_rgba(0,0,0,0.45)]",
+      },
+    },
+  },
+);
+
+const contentCellSurfaceVariants = cva("", {
+  variants: {
+    theme: { light: "", dark: "" },
+    pressed: { true: "", false: "" },
+  },
+  compoundVariants: [
+    { theme: "light", pressed: false, class: "bg-white text-[#1A1A1A]" },
+    { theme: "light", pressed: true, class: "bg-[#E3E5EA] text-[#1A1A1A]" },
+    { theme: "dark", pressed: false, class: "bg-[#898989] text-white" },
+    { theme: "dark", pressed: true, class: "bg-[#8F949C] text-white" },
+  ],
+});
+
+const fnCellSurfaceVariants = cva("", {
+  variants: {
+    theme: { light: "", dark: "" },
+    pressed: { true: "", false: "" },
+  },
+  compoundVariants: [
+    { pressed: true, theme: "light", class: "bg-[#E3E5EA] text-[#1A1A1A]" },
+    { pressed: true, theme: "dark", class: "bg-[#8F949C] text-white" },
+    { pressed: false, theme: "light", class: "bg-[#B4B8C0] text-[#1A1A1A]" },
+    { pressed: false, theme: "dark", class: "bg-[#6E6E6E] text-white" },
+  ],
+});
+
+// ── ContentCell ────────────────────────────────────────────────────────────
+
+interface ContentCellProps {
+  cellKey: FlickKey;
+  pos: [number, number];
+  activeMode: FlickMode;
+  isLineStart: boolean;
+  caps: boolean;
+  theme: CellTheme;
+  isPressed: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+}
+
+function ContentCell({
+  cellKey: k,
+  pos,
+  activeMode,
+  isLineStart,
+  caps,
+  theme,
+  isPressed,
+  onPointerDown,
+}: ContentCellProps) {
+  const [col, row] = pos;
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      className={cn(
+        "flex cursor-pointer touch-none items-center justify-center p-[3px]",
+        COL_START[col],
+        ROW_START[row],
+      )}
+    >
+      <div
+        className={cn(
+          cellShellVariants({ theme }),
+          "flex-col gap-px tracking-[0.5px] [font-variant-ligatures:none]",
+          getCellTextClass(k, activeMode),
+          contentCellSurfaceVariants({ theme, pressed: isPressed }),
+        )}
+        style={{
+          transform: isPressed ? "scale(0.96)" : undefined,
+          filter: isPressed ? "brightness(0.92)" : undefined,
+        }}
+      >
+        {activeMode === "kana" && k.id === "mod" && isLineStart ? (
+          <ModLineStartFace />
+        ) : (
+          <span>{getDisplayFace(k, activeMode, caps)}</span>
+        )}
+
+        {k.sub && (
+          <span className="relative bottom-1.5 flex gap-[3px] font-normal text-[9px] tracking-normal opacity-[0.55]">
+            {[...k.sub].map((ch) => (
+              <span key={ch}>{ch}</span>
+            ))}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── FnCell ─────────────────────────────────────────────────────────────────
+
+// タップ後にフィードバック色をどれだけ表示し続けるか
+const FN_TAP_FLASH_MS = 110;
+
+interface FnCellProps {
+  id: string;
+  col: number;
+  row: number;
+  rowSpan?: number;
+  label?: string;
+  icon?: React.ReactNode;
+  theme: CellTheme;
+  action?: FlickEvent;
+  onEvent: (event: FlickEvent) => void;
+}
+
+function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: FnCellProps) {
+  const [isPressed, setIsPressed] = useState(false);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    },
+    [],
+  );
+
+  const flash = () => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setIsPressed(true);
+    flashTimerRef.current = setTimeout(() => {
+      flashTimerRef.current = null;
+      setIsPressed(false);
+    }, FN_TAP_FLASH_MS);
+  };
+
+  const onPointerDown = () => {
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = null;
+    }
+    setIsPressed(true);
+  };
+
+  const onPointerLeave = () => setIsPressed(false);
+
+  return (
+    <div
+      data-key-id={id}
+      onPointerDown={onPointerDown}
+      onPointerLeave={onPointerLeave}
+      onPointerUp={flash}
+      onPointerCancel={onPointerLeave}
+      onClick={
+        action
+          ? () => {
+              flash();
+              onEvent(action);
+            }
+          : undefined
+      }
+      className={cn(
+        "flex touch-none items-center justify-center p-[3px]",
+        COL_START[col],
+        ROW_START[row],
+        rowSpan === 2 && "row-span-2",
+        action ? "cursor-pointer" : "cursor-default",
+      )}
+    >
+      <div
+        className={cn(
+          cellShellVariants({ theme }),
+          "font-medium text-sm tracking-[0.3px]",
+          fnCellSurfaceVariants({ theme, pressed: isPressed }),
+        )}
+        style={{ filter: isPressed ? "brightness(0.9)" : undefined }}
+      >
+        {id === "del" ? <DeleteIcon pressed={isPressed} /> : (icon ?? label)}
+      </div>
+    </div>
+  );
+}
+
 // ── FlickKeyboard ──────────────────────────────────────────────────────────
 
 interface PressState {
@@ -283,6 +474,142 @@ interface PressState {
 }
 
 type QuickFlickState = PressState;
+
+// ── Popup ──────────────────────────────────────────────────────────────────
+// iOSのフリック入力候補のように、十字に並んだ方向プレビューを隙間なく1枚のパネルとして表示する。
+
+interface PopupProps {
+  press: PressState;
+  gridRef: React.RefObject<HTMLDivElement | null>;
+  activeMode: FlickMode;
+  caps: boolean;
+  isDark: boolean;
+}
+
+function Popup({ press, gridRef, activeMode, caps, isDark }: PopupProps) {
+  if (!gridRef.current) return null;
+  const k = press.key;
+  const applyCase = (ch: string) => (activeMode === "english" ? (caps ? ch.toUpperCase() : ch.toLowerCase()) : ch);
+  const g = gridRef.current.getBoundingClientRect();
+  // 1セル分の平均サイズをグリッド全体の実測サイズから逆算し、パネル(3x3セル)が背景のセルと重なる比率を保ったまま少し縮小する
+  const scale = 0.98;
+  const panelW = (g.width / 5) * 3 * scale;
+  const panelH = (g.height / 4) * 3 * scale;
+  const halfW = panelW / 2;
+  const cx = Math.max(halfW, Math.min(press.cx, g.width - halfW));
+  const left = cx - halfW;
+  const top = press.cy - panelH / 2;
+
+  const has = { u: !!k.u, d: !!k.d, l: !!k.l, r: !!k.r };
+  const slots: { slot: "c" | "l" | "r" | "u" | "d"; row: number; col: number; ch: string | undefined }[] = [
+    { slot: "u", row: 1, col: 2, ch: k.u },
+    { slot: "l", row: 2, col: 1, ch: k.l },
+    { slot: "c", row: 2, col: 2, ch: k.c },
+    { slot: "r", row: 2, col: 3, ch: k.r },
+    { slot: "d", row: 3, col: 2, ch: k.d },
+  ];
+
+  return (
+    <div
+      className="pointer-events-none absolute z-40 grid grid-cols-3 grid-rows-3"
+      style={{ left, top, width: panelW, height: panelH }}
+    >
+      {slots
+        .filter((s): s is typeof s & { ch: string } => s.ch != null)
+        .map(({ slot, row, col, ch }) => {
+          const on = slot === press.dir;
+          return (
+            <div
+              key={slot}
+              className={cn(
+                "flex items-center justify-center text-xl leading-none",
+                "[transition:background-color_80ms,color_80ms]",
+                popupCellCorners(slot, has),
+                on ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
+              )}
+              style={{ gridRow: row, gridColumn: col }}
+            >
+              {applyCase(ch)}
+            </div>
+          );
+        })}
+    </div>
+  );
+}
+
+// ── QuickFlickPopup ────────────────────────────────────────────────────────
+
+interface QuickFlickPopupProps {
+  quickFlick: QuickFlickState;
+  gridRef: React.RefObject<HTMLDivElement | null>;
+  activeMode: FlickMode;
+  caps: boolean;
+  isDark: boolean;
+}
+
+function QuickFlickPopup({ quickFlick, gridRef, activeMode, caps, isDark }: QuickFlickPopupProps) {
+  if (!gridRef.current) return null;
+  const ch = quickFlick.key[quickFlick.dir];
+  if (!ch) return null;
+  const applyCase = (value: string) =>
+    activeMode === "english" ? (caps ? value.toUpperCase() : value.toLowerCase()) : value;
+  const g = gridRef.current.getBoundingClientRect();
+  const cellW = g.width / 5;
+  const cellH = g.height / 4;
+  const w = cellW * (quickFlick.dir === "l" || quickFlick.dir === "r" ? 1.28 : 0.98);
+  const h = cellH * (quickFlick.dir === "u" || quickFlick.dir === "d" ? 1.42 : 0.98);
+  const offsetX = cellW * 0.86;
+  const offsetY = cellH * 1.02;
+  const positions = {
+    u: { left: quickFlick.cx - w / 2, top: quickFlick.cy - offsetY - h / 2 },
+    d: { left: quickFlick.cx - w / 2, top: quickFlick.cy + offsetY - h / 2 },
+    l: { left: quickFlick.cx - offsetX - w / 2, top: quickFlick.cy - h / 2 },
+    r: { left: quickFlick.cx + offsetX - w / 2, top: quickFlick.cy - h / 2 },
+    c: { left: quickFlick.cx - w / 2, top: quickFlick.cy - h / 2 },
+  } satisfies Record<"c" | "l" | "r" | "u" | "d", { left: number; top: number }>;
+  const shapePaths = {
+    u: "M8 0H92Q100 0 100 8V74Q100 78 96 81L57 97Q50 100 43 97L4 81Q0 78 0 74V8Q0 0 8 0Z",
+    d: "M4 19L43 3Q50 0 57 3L96 19Q100 22 100 26V92Q100 100 92 100H8Q0 100 0 92V26Q0 22 4 19Z",
+    l: "M8 0H76Q81 0 84 5L98 44Q100 50 98 56L84 95Q81 100 76 100H8Q0 100 0 92V8Q0 0 8 0Z",
+    r: "M24 0H92Q100 0 100 8V92Q100 100 92 100H24Q19 100 16 95L2 56Q0 50 2 44L16 5Q19 0 24 0Z",
+    c: "M8 0H92Q100 0 100 8V92Q100 100 92 100H8Q0 100 0 92V8Q0 0 8 0Z",
+  } satisfies Record<"c" | "l" | "r" | "u" | "d", string>;
+  const textTransforms = {
+    u: "translateY(-8px)",
+    d: "translateY(8px)",
+    l: "translateX(-8px)",
+    r: "translateX(8px)",
+    c: undefined,
+  } satisfies Record<"c" | "l" | "r" | "u" | "d", string | undefined>;
+  const { left, top } = positions[quickFlick.dir];
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute z-30 flex items-center justify-center font-medium text-[28px] leading-none",
+        isDark ? "text-white" : "text-[#1A1A1A]",
+      )}
+      data-testid="quick-flick-popup"
+      style={{ left, top, width: w, height: h }}
+    >
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 100"
+      >
+        <path
+          className={cn(isDark ? "fill-[#5B5B5E]" : "fill-white")}
+          d={shapePaths[quickFlick.dir]}
+          data-testid="quick-flick-shape"
+        />
+      </svg>
+      <span className="relative" data-testid="quick-flick-text" style={{ transform: textTransforms[quickFlick.dir] }}>
+        {applyCase(ch)}
+      </span>
+    </div>
+  );
+}
 
 // PWA (ホーム画面に追加して起動した状態) かどうかを判定する。
 // iOS Safari は display-mode メディアクエリではなく navigator.standalone で判定する必要がある。
@@ -334,8 +661,6 @@ function FlickKeyboard({
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const quickFlickHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
-  const [tapId, setTapId] = useState<string | null>(null);
-  const fnTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [caps, setCaps] = useState(true);
 
   const activeMode = mode ?? "kana";
@@ -417,265 +742,10 @@ function FlickKeyboard({
     window.addEventListener("pointerup", onUp);
   };
 
-  const flashFnCell = (id: string) => {
-    if (fnTapTimerRef.current) clearTimeout(fnTapTimerRef.current);
-    setTapId(id);
-    fnTapTimerRef.current = setTimeout(() => {
-      fnTapTimerRef.current = null;
-      setTapId(null);
-    }, 110);
-  };
-
-  const fnTap = (id: string, ev: FlickEvent) => {
-    flashFnCell(id);
-    onEvent(ev);
-  };
-
-  const fnDown = (id: string) => {
-    if (fnTapTimerRef.current) {
-      clearTimeout(fnTapTimerRef.current);
-      fnTapTimerRef.current = null;
-    }
-    setTapId(id);
-  };
-
-  const fnUp = () => {
-    setTapId(null);
-  };
-
-  const fnRelease = (id: string) => {
-    flashFnCell(id);
-  };
-
-  const keyShadow = isDark ? "shadow-[0_1px_2px_rgba(0,0,0,0.45)]" : "shadow-[0_1px_0_rgba(0,0,0,0.30)]";
-  const pressedCellClass = isDark ? "bg-[#8F949C] text-white" : "bg-[#E3E5EA] text-[#1A1A1A]";
-
-  // ── popup ──────────────────────────────────────────────────────
-  // iOSのフリック入力候補のように、十字に並んだ方向プレビューを隙間なく1枚のパネルとして表示する。
-  const renderPopup = () => {
-    if (!press || !gridRef.current) return null;
-    const k = press.key;
-    const applyCase = (ch: string) => (activeMode === "english" ? (caps ? ch.toUpperCase() : ch.toLowerCase()) : ch);
-    const g = gridRef.current.getBoundingClientRect();
-    // 1セル分の平均サイズをグリッド全体の実測サイズから逆算し、パネル(3x3セル)が背景のセルと重なる比率を保ったまま少し縮小する
-    const scale = 0.98;
-    const panelW = (g.width / 5) * 3 * scale;
-    const panelH = (g.height / 4) * 3 * scale;
-    const halfW = panelW / 2;
-    const cx = Math.max(halfW, Math.min(press.cx, g.width - halfW));
-    const left = cx - halfW;
-    const top = press.cy - panelH / 2;
-
-    const has = { u: !!k.u, d: !!k.d, l: !!k.l, r: !!k.r };
-    const slots: { slot: "c" | "l" | "r" | "u" | "d"; row: number; col: number; ch: string | undefined }[] = [
-      { slot: "u", row: 1, col: 2, ch: k.u },
-      { slot: "l", row: 2, col: 1, ch: k.l },
-      { slot: "c", row: 2, col: 2, ch: k.c },
-      { slot: "r", row: 2, col: 3, ch: k.r },
-      { slot: "d", row: 3, col: 2, ch: k.d },
-    ];
-
-    return (
-      <div
-        className="pointer-events-none absolute z-40 grid grid-cols-3 grid-rows-3"
-        style={{ left, top, width: panelW, height: panelH }}
-      >
-        {slots
-          .filter((s): s is typeof s & { ch: string } => s.ch != null)
-          .map(({ slot, row, col, ch }) => {
-            const on = slot === press.dir;
-            return (
-              <div
-                key={slot}
-                className={cn(
-                  "flex items-center justify-center text-xl leading-none",
-                  "[transition:background-color_80ms,color_80ms]",
-                  popupCellCorners(slot, has),
-                  on ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
-                )}
-                style={{ gridRow: row, gridColumn: col }}
-              >
-                {applyCase(ch)}
-              </div>
-            );
-          })}
-      </div>
-    );
-  };
-
-  const renderQuickFlickPopup = () => {
-    if (!quickFlick || press || !gridRef.current) return null;
-    const ch = quickFlick.key[quickFlick.dir];
-    if (!ch) return null;
-    const applyCase = (value: string) =>
-      activeMode === "english" ? (caps ? value.toUpperCase() : value.toLowerCase()) : value;
-    const g = gridRef.current.getBoundingClientRect();
-    const cellW = g.width / 5;
-    const cellH = g.height / 4;
-    const w = cellW * (quickFlick.dir === "l" || quickFlick.dir === "r" ? 1.28 : 0.98);
-    const h = cellH * (quickFlick.dir === "u" || quickFlick.dir === "d" ? 1.42 : 0.98);
-    const offsetX = cellW * 0.86;
-    const offsetY = cellH * 1.02;
-    const positions = {
-      u: { left: quickFlick.cx - w / 2, top: quickFlick.cy - offsetY - h / 2 },
-      d: { left: quickFlick.cx - w / 2, top: quickFlick.cy + offsetY - h / 2 },
-      l: { left: quickFlick.cx - offsetX - w / 2, top: quickFlick.cy - h / 2 },
-      r: { left: quickFlick.cx + offsetX - w / 2, top: quickFlick.cy - h / 2 },
-      c: { left: quickFlick.cx - w / 2, top: quickFlick.cy - h / 2 },
-    } satisfies Record<"c" | "l" | "r" | "u" | "d", { left: number; top: number }>;
-    const shapePaths = {
-      u: "M8 0H92Q100 0 100 8V74Q100 78 96 81L57 97Q50 100 43 97L4 81Q0 78 0 74V8Q0 0 8 0Z",
-      d: "M4 19L43 3Q50 0 57 3L96 19Q100 22 100 26V92Q100 100 92 100H8Q0 100 0 92V26Q0 22 4 19Z",
-      l: "M8 0H76Q81 0 84 5L98 44Q100 50 98 56L84 95Q81 100 76 100H8Q0 100 0 92V8Q0 0 8 0Z",
-      r: "M24 0H92Q100 0 100 8V92Q100 100 92 100H24Q19 100 16 95L2 56Q0 50 2 44L16 5Q19 0 24 0Z",
-      c: "M8 0H92Q100 0 100 8V92Q100 100 92 100H8Q0 100 0 92V8Q0 0 8 0Z",
-    } satisfies Record<"c" | "l" | "r" | "u" | "d", string>;
-    const textTransforms = {
-      u: "translateY(-8px)",
-      d: "translateY(8px)",
-      l: "translateX(-8px)",
-      r: "translateX(8px)",
-      c: undefined,
-    } satisfies Record<"c" | "l" | "r" | "u" | "d", string | undefined>;
-    const { left, top } = positions[quickFlick.dir];
-
-    return (
-      <div
-        className={cn(
-          "pointer-events-none absolute z-30 flex items-center justify-center font-medium text-[28px] leading-none",
-          isDark ? "text-white" : "text-[#1A1A1A]",
-        )}
-        data-testid="quick-flick-popup"
-        style={{ left, top, width: w, height: h }}
-      >
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full"
-          preserveAspectRatio="none"
-          viewBox="0 0 100 100"
-        >
-          <path
-            className={cn(isDark ? "fill-[#5B5B5E]" : "fill-white")}
-            d={shapePaths[quickFlick.dir]}
-            data-testid="quick-flick-shape"
-          />
-        </svg>
-        <span className="relative" data-testid="quick-flick-text" style={{ transform: textTransforms[quickFlick.dir] }}>
-          {applyCase(ch)}
-        </span>
-      </div>
-    );
-  };
-
   // ── cell factories ─────────────────────────────────────────────
-  const cellBase = cn(
-    "flex h-full w-full items-center justify-center rounded-[7px]",
-    "[transition:filter_90ms,transform_60ms]",
-    keyShadow,
+  const fnCell = (props: Omit<FnCellProps, "theme" | "onEvent">) => (
+    <FnCell key={props.id} {...props} theme={theme} onEvent={onEvent} />
   );
-
-  const contentCell = (k: FlickKey) => {
-    const pos = activePosMap[k.id];
-    if (!pos) return null;
-    const [col, row] = pos;
-    const down = pressedKeyId === k.id || press?.key.id === k.id;
-    return (
-      <div
-        key={k.id}
-        onPointerDown={(e) => onDown(e, k)}
-        className={cn(
-          "flex cursor-pointer touch-none items-center justify-center p-[3px]",
-          COL_START[col],
-          ROW_START[row],
-        )}
-      >
-        <div
-          className={cn(
-            cellBase,
-            "flex-col gap-px tracking-[0.5px] [font-variant-ligatures:none]",
-            getCellTextClass(k, activeMode),
-            down ? pressedCellClass : isDark ? "bg-[#898989] text-white" : "bg-white text-[#1A1A1A]",
-          )}
-          style={{
-            transform: down ? "scale(0.96)" : undefined,
-            filter: down ? "brightness(0.92)" : undefined,
-          }}
-        >
-          {activeMode === "kana" && k.id === "mod" && isLineStart ? (
-            <ModLineStartFace />
-          ) : (
-            <span>{getDisplayFace(k, activeMode, caps)}</span>
-          )}
-
-          {k.sub && (
-            <span className="relative bottom-1.5 flex gap-[3px] font-normal text-[9px] tracking-normal opacity-[0.55]">
-              {[...k.sub].map((ch) => (
-                <span key={ch}>{ch}</span>
-              ))}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const fnCell = ({
-    id,
-    col,
-    row,
-    rowSpan,
-    label,
-    icon,
-    action,
-    accent,
-  }: {
-    id: string;
-    col: number;
-    row: number;
-    rowSpan?: number;
-    label?: string;
-    icon?: React.ReactNode;
-    action?: FlickEvent;
-    accent?: boolean;
-    decorative?: boolean;
-  }) => {
-    const down = tapId === id;
-    return (
-      <div
-        key={id}
-        data-key-id={id}
-        onPointerDown={() => fnDown(id)}
-        onPointerLeave={fnUp}
-        onPointerUp={() => fnRelease(id)}
-        onPointerCancel={fnUp}
-        onClick={action ? () => fnTap(id, action) : undefined}
-        className={cn(
-          "flex touch-none items-center justify-center p-[3px]",
-          COL_START[col],
-          ROW_START[row],
-          rowSpan === 2 && "row-span-2",
-          action ? "cursor-pointer" : "cursor-default",
-        )}
-      >
-        <div
-          className={cn(
-            cellBase,
-            "font-medium text-sm tracking-[0.3px]",
-            down
-              ? pressedCellClass
-              : accent
-                ? "bg-[#2E92FA] text-white"
-                : isDark
-                  ? "bg-[#6E6E6E] text-white"
-                  : "bg-[#B4B8C0] text-[#1A1A1A]",
-          )}
-          style={{ filter: down ? "brightness(0.9)" : undefined }}
-        >
-          {id === "del" ? <DeleteIcon pressed={down} /> : (icon ?? label)}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div
@@ -726,7 +796,21 @@ function FlickKeyboard({
               action: { type: "modeSwitch", to: "kana" },
             })}
           {/* content keys */}
-          {activeKeys.filter((k) => activePosMap[k.id]).map(contentCell)}
+          {activeKeys
+            .filter((k) => activePosMap[k.id])
+            .map((k) => (
+              <ContentCell
+                key={k.id}
+                cellKey={k}
+                pos={activePosMap[k.id] as [number, number]}
+                activeMode={activeMode}
+                isLineStart={isLineStart}
+                caps={caps}
+                theme={theme}
+                isPressed={pressedKeyId === k.id || press?.key.id === k.id}
+                onPointerDown={(e) => onDown(e, k)}
+              />
+            ))}
           {/* right column */}
           {fnCell({ id: "del", col: 5, row: 1, action: { type: "delete" } })}
           {fnCell({ id: "space", col: 5, row: 2, label: "空白", action: { type: "space" } })}
@@ -736,10 +820,17 @@ function FlickKeyboard({
             row: 3,
             rowSpan: 2,
             label: activeMode === "kana" ? "" : "",
-            accent: activeMode !== "kana",
           })}
-          {renderQuickFlickPopup()}
-          {renderPopup()}
+          {quickFlick && !press && (
+            <QuickFlickPopup
+              quickFlick={quickFlick}
+              gridRef={gridRef}
+              activeMode={activeMode}
+              caps={caps}
+              isDark={isDark}
+            />
+          )}
+          {press && <Popup press={press} gridRef={gridRef} activeMode={activeMode} caps={caps} isDark={isDark} />}
         </div>
       </div>
     </div>
