@@ -282,7 +282,7 @@ const ROW_START: Record<number, string> = {
 // テーマ(light/dark)・押下状態・アクセント表示の組み合わせで決まるセルの見た目を cva で定義する。
 
 const cellShellVariants = cva(
-  "flex h-full w-full items-center justify-center rounded-[7px] [transition:filter_90ms,transform_60ms]",
+  "flex h-full w-full items-center justify-center rounded-[7px] [transition:filter_90ms,transform_60ms,opacity_120ms]",
   {
     variants: {
       theme: {
@@ -329,6 +329,7 @@ interface ContentCellProps {
   caps: boolean;
   theme: CellTheme;
   isPressed: boolean;
+  dimmed: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
 }
 
@@ -340,6 +341,7 @@ function ContentCell({
   caps,
   theme,
   isPressed,
+  dimmed,
   onPointerDown,
 }: ContentCellProps) {
   const [col, row] = pos;
@@ -358,6 +360,7 @@ function ContentCell({
           "flex-col gap-px tracking-[0.5px] [font-variant-ligatures:none]",
           getCellTextClass(k, activeMode),
           contentCellSurfaceVariants({ theme, pressed: isPressed }),
+          dimmed && "opacity-50",
         )}
         style={{
           transform: isPressed ? "scale(0.96)" : undefined,
@@ -392,11 +395,12 @@ interface FnCellProps {
   label?: string;
   icon?: React.ReactNode;
   theme: CellTheme;
+  dimmed: boolean;
   action?: FlickEvent;
   onEvent: (event: FlickEvent) => void;
 }
 
-function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: FnCellProps) {
+function FnCell({ id, col, row, rowSpan, label, icon, theme, dimmed, action, onEvent }: FnCellProps) {
   const [isPressed, setIsPressed] = useState(false);
 
   const onPointerDown = () => setIsPressed(true);
@@ -426,8 +430,9 @@ function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: 
       <div
         className={cn(
           cellShellVariants({ theme }),
-          "font-medium text-sm tracking-[0.3px]",
+          "tracking-[0.3px]",
           fnCellSurfaceVariants({ theme, pressed: isPressed }),
+          dimmed && "opacity-50",
         )}
         style={{ filter: isPressed ? "brightness(0.9)" : undefined }}
       >
@@ -716,8 +721,8 @@ function FlickKeyboard({
   };
 
   // ── cell factories ─────────────────────────────────────────────
-  const fnCell = (props: Omit<FnCellProps, "theme" | "onEvent">) => (
-    <FnCell key={props.id} {...props} theme={theme} onEvent={onEvent} />
+  const fnCell = (props: Omit<FnCellProps, "theme" | "onEvent" | "dimmed">) => (
+    <FnCell key={props.id} {...props} theme={theme} onEvent={onEvent} dimmed={!!press} />
   );
 
   return (
@@ -781,6 +786,7 @@ function FlickKeyboard({
                 caps={caps}
                 theme={theme}
                 isPressed={pressedKeyId === k.id || press?.key.id === k.id}
+                dimmed={!!press && press.key.id !== k.id}
                 onPointerDown={(e) => onDown(e, k)}
               />
             ))}
