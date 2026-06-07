@@ -381,7 +381,7 @@ function FlickKeyboard({
 
   // ── cell factories ─────────────────────────────────────────────
   const cellBase = cn(
-    "h-full w-full rounded-[7px] flex items-center justify-center select-none",
+    "flex h-full w-full select-none items-center justify-center rounded-[7px]",
     "[transition:filter_90ms,transform_60ms]",
     keyShadow,
   );

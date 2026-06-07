@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { applyMod, type FlickEvent, FlickKeyboard, type FlickMode } from "jp-flick-keyboard";
+import { useState } from "react";
 
 export function App() {
   const [text, setText] = useState("");
@@ -55,7 +55,7 @@ export function App() {
         <button
           type="button"
           onClick={() => setText("")}
-          className="rounded-md bg-neutral-300 px-3 py-1.5 text-sm text-neutral-800"
+          className="rounded-md bg-neutral-300 px-3 py-1.5 text-neutral-800 text-sm"
         >
           クリア
         </button>
@@ -69,7 +69,7 @@ export function App() {
         現在のモード: {mode} / 行頭: {isLineStart ? "はい" : "いいえ"}
       </div>
 
-      <div className="mt-auto -mx-4 -mb-4">
+      <div className="-mx-4 mt-auto -mb-4">
         <FlickKeyboard onEvent={handleEvent} theme={theme} mode={mode} isLineStart={isLineStart} />
       </div>
     </div>

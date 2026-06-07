@@ -1,0 +1,47 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 120
+  },
+  "linter": {
+    "domains": {
+      "react": "recommended",
+      "project": "recommended"
+    },
+    "rules": {
+      "a11y": {
+        "useKeyWithClickEvents": "info",
+        "noStaticElementInteractions": "info"
+      },
+      "nursery": {
+        "useSortedClasses": {
+          "fix": "safe",
+          "level": "error",
+          "options": {
+            "functions": ["cn", "twMerge", "twJoin"]
+          }
+        }
+      },
+      "style": {
+        "noCommonJs": "error",
+        "noDefaultExport": "error",
+        "useFilenamingConvention": {
+          "options": {
+            "filenameCases": ["kebab-case"]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}
