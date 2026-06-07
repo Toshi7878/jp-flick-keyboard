@@ -72,6 +72,22 @@ describe("FlickKeyboard", () => {
     expect(onEvent).toHaveBeenCalledWith({ type: "flick", char: "え" });
   });
 
+  it("複数の指で別々のキーを同時にフリックしても、それぞれ独立したイベントを発火する", () => {
+    const { onEvent } = setup({ threshold: 10 });
+
+    fireEvent.pointerDown(screen.getByText("あ"), { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerDown(screen.getByText("か"), { pointerId: 2, clientX: 300, clientY: 100 });
+
+    fireEvent.pointerMove(window, { pointerId: 1, clientX: 140, clientY: 100 });
+    fireEvent.pointerMove(window, { pointerId: 2, clientX: 300, clientY: 140 });
+
+    fireEvent.pointerUp(window, { pointerId: 1, clientX: 140, clientY: 100 });
+    fireEvent.pointerUp(window, { pointerId: 2, clientX: 300, clientY: 140 });
+
+    expect(onEvent).toHaveBeenCalledWith({ type: "flick", char: "え" });
+    expect(onEvent).toHaveBeenCalledWith({ type: "flick", char: "こ" });
+  });
+
   it("文字が割り当てられていない方向へフリックした場合は tap にフォールバックする", () => {
     const { onEvent } = setup({ threshold: 10 });
     fireEvent.pointerDown(screen.getByText("小゛゜"), { clientX: 100, clientY: 100 });
