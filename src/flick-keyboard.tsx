@@ -371,6 +371,7 @@ function FlickKeyboard({
       popupTimerRef.current = setTimeout(() => {
         popupTimerRef.current = null;
         if (stateRef.current.key === key) {
+          if (stateRef.current.dir !== "c") return;
           setQuickFlick(null);
           setPress({ key, dir: stateRef.current.dir, cx, cy });
         }

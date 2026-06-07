@@ -135,6 +135,7 @@ describe("FlickKeyboard", () => {
   });
 
   it("popup が表示される前にフリックした場合は入力される文字の quick popup を表示する", () => {
+    vi.useFakeTimers();
     setup({ threshold: 10 });
 
     fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
@@ -142,7 +143,15 @@ describe("FlickKeyboard", () => {
 
     expect(screen.getByTestId("quick-flick-popup")).toHaveTextContent("え");
 
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(screen.getByTestId("quick-flick-popup")).toHaveTextContent("え");
+    expect(screen.getByText("え")).not.toHaveClass("bg-[#2E92FA]");
+
     fireEvent.pointerUp(window, { clientX: 140, clientY: 100 });
+    vi.useRealTimers();
   });
 
   it("light テーマでは popup の非選択セル背景を白にする", () => {
