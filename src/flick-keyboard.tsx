@@ -114,13 +114,13 @@ function DeleteIcon({ pressed, isDark }: { pressed: boolean; isDark: boolean }) 
         )}
         d="M10.4 4.5h12.3a2.8 2.8 0 0 1 2.8 2.8v9.4a2.8 2.8 0 0 1-2.8 2.8H10.4a2.3 2.3 0 0 1-1.7-.8L2.8 12l5.9-6.7a2.3 2.3 0 0 1 1.7-.8Z"
         strokeLinejoin="round"
-        strokeWidth="2"
+        strokeWidth="1.6"
       />
       <path
         className={cn(pressed ? (isDark ? "stroke-black" : "stroke-white") : "stroke-current")}
         d="m14.1 9.1 5.8 5.8m0-5.8-5.8 5.8"
         strokeLinecap="round"
-        strokeWidth="2.2"
+        strokeWidth="2"
       />
     </svg>
   );
