@@ -192,7 +192,7 @@ describe("FlickKeyboard", () => {
 
     fireEvent.pointerUp(controlCell as Element);
 
-    expect(controlKey).toHaveClass("bg-[#E3E5EA]");
+    expect(controlKey).toHaveClass("bg-[#B4B8C0]");
   });
 
   it("isLineStart が true のとき mod キーに行頭インジケーターを表示する", () => {

@@ -384,9 +384,6 @@ function ContentCell({
 
 // ── FnCell ─────────────────────────────────────────────────────────────────
 
-// タップ後にフィードバック色をどれだけ表示し続けるか
-const FN_TAP_FLASH_MS = 50;
-
 interface FnCellProps {
   id: string;
   col: number;
@@ -401,36 +398,13 @@ interface FnCellProps {
 
 function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: FnCellProps) {
   const [isPressed, setIsPressed] = useState(false);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(
-    () => () => {
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    },
-    [],
-  );
-
-  const flash = () => {
-    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    setIsPressed(true);
-    flashTimerRef.current = setTimeout(() => {
-      flashTimerRef.current = null;
-      setIsPressed(false);
-    }, FN_TAP_FLASH_MS);
-  };
-
-  const onPointerDown = () => {
-    if (flashTimerRef.current) {
-      clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = null;
-    }
-    setIsPressed(true);
-  };
+  const onPointerDown = () => setIsPressed(true);
 
   const onPointerLeave = () => setIsPressed(false);
 
   const onPointerUp = () => {
-    flash();
+    setIsPressed(false);
     if (action) onEvent(action);
   };
 
