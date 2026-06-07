@@ -666,7 +666,7 @@ function FlickKeyboard({
         "relative box-border flex w-full flex-col px-[5px] pt-[5px]",
         isDark ? "bg-[#4A4A4A]" : "bg-[#CBCED3]",
         // PWA起動時はホームインジケーター分のセーフエリアを余白として確保する
-        isStandalone && "pb-[max(env(safe-area-inset-bottom),20px)]",
+        isStandalone && "pb-[max(env(safe-area-inset-bottom),40px)]",
       )}
     >
       {/* top candidate strip */}
