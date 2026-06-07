@@ -9,9 +9,9 @@ describe("applyMod", () => {
     expect(applyMod("は")).toBe("ば");
     expect(applyMod("ば")).toBe("ぱ");
     expect(applyMod("ぱ")).toBe("は");
-    expect(applyMod("つ")).toBe("づ");
-    expect(applyMod("づ")).toBe("っ");
-    expect(applyMod("っ")).toBe("つ");
+    expect(applyMod("つ")).toBe("っ");
+    expect(applyMod("っ")).toBe("づ");
+    expect(applyMod("づ")).toBe("つ");
   });
 
   it("循環対象でない文字は null を返す", () => {
