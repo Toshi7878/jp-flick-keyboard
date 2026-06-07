@@ -584,7 +584,7 @@ function FlickKeyboard({
           {activeMode === "kana" && k.id === "mod" && isLineStart ? (
             <span className="-mt-1 flex flex-col items-center">
               <span className="text-lg leading-none">^^</span>
-              <span className="-mt-[19px] leading-none">_</span>
+              <span className="mt-[-19px] leading-none">_</span>
             </span>
           ) : (
             <span>{getDisplayFace(k)}</span>
