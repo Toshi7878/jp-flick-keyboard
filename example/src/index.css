@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* jp-flick-keyboard はビルド済み JS にユーティリティクラスを含むため、
+   Tailwind の自動コンテンツ検出対象 (node_modules は除外される) に明示的に追加する */
+@source "../../dist/**/*.{js,cjs}";

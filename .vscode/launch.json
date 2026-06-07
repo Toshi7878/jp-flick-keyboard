@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Example: dev server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}/example"
+    },
+    {
+      "name": "Example: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "Example: dev server + browser",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}/example",
+      "serverReadyAction": {
+        "pattern": "Local:.+(https?://[^\\s]+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      }
+    }
+  ]
+}
