@@ -179,6 +179,22 @@ describe("FlickKeyboard", () => {
     vi.useRealTimers();
   });
 
+  it("flick方向を持たないキーは長押ししてもポップアップを表示しない", () => {
+    vi.useFakeTimers();
+
+    setup();
+    fireEvent.pointerDown(screen.getByText("小゛゜"), { clientX: 100, clientY: 100 });
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(screen.queryByText("小")).not.toBeInTheDocument();
+
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
+    vi.useRealTimers();
+  });
+
   it("action がない controlCell もタップすると light テーマの押されたフィードバック色に切り替わる", () => {
     const { container } = setup();
     const controlCell = container.querySelector('[data-key-id="mod2"]');

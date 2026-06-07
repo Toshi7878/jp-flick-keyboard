@@ -753,7 +753,8 @@ function FlickKeyboard({
     s.sy = e.clientY;
     s.dir = "c";
     setPressedKeyId(key.id);
-    if (key.type !== "caps") {
+    const hasFlickDirections = !!(key.l || key.u || key.r || key.d);
+    if (key.type !== "caps" && hasFlickDirections) {
       const cx = r.left - g.left + r.width / 2;
       const cy = r.top - g.top + r.height / 2;
       s.cx = cx;
