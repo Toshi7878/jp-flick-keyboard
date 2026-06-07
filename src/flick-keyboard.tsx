@@ -98,12 +98,7 @@ function applyMod(ch: string): string | null {
 }
 
 // 押下から方向プレビューが出るまでの遅延（タップ時にチラつかないよう少し長押しを要求する）
-const POPUP_DELAY_MS = 120;
-const HAPTIC_FEEDBACK_MS = 10;
-
-function vibrateForPopup() {
-  navigator.vibrate?.(HAPTIC_FEEDBACK_MS);
-}
+const POPUP_DELAY_MS = 300;
 
 function DeleteIcon({ pressed }: { pressed: boolean }) {
   return (
@@ -260,6 +255,8 @@ interface PressState {
   cy: number;
 }
 
+type QuickFlickState = PressState;
+
 // PWA (ホーム画面に追加して起動した状態) かどうかを判定する。
 // iOS Safari は display-mode メディアクエリではなく navigator.standalone で判定する必要がある。
 function useIsStandalone(): boolean {
@@ -290,13 +287,23 @@ function FlickKeyboard({
   const isDark = theme === "dark";
   const isStandalone = useIsStandalone();
   const gridRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef<{ key: FlickKey | null; sx: number; sy: number; dir: "c" | "l" | "r" | "u" | "d" }>({
+  const stateRef = useRef<{
+    key: FlickKey | null;
+    sx: number;
+    sy: number;
+    dir: "c" | "l" | "r" | "u" | "d";
+    cx: number;
+    cy: number;
+  }>({
     key: null,
     sx: 0,
     sy: 0,
     dir: "c",
+    cx: 0,
+    cy: 0,
   });
   const [press, setPress] = useState<PressState | null>(null);
+  const [quickFlick, setQuickFlick] = useState<QuickFlickState | null>(null);
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
   const [tapId, setTapId] = useState<string | null>(null);
@@ -314,6 +321,7 @@ function FlickKeyboard({
       const dir = dirOf(e.clientX - s.sx, e.clientY - s.sy, threshold);
       if (dir !== s.dir) {
         s.dir = dir;
+        setQuickFlick(dir !== "c" && s.key[dir] ? { key: s.key, dir, cx: s.cx, cy: s.cy } : null);
         setPress((q) => (q ? { ...q, dir } : q));
       }
     },
@@ -330,6 +338,7 @@ function FlickKeyboard({
       popupTimerRef.current = null;
     }
     setPressedKeyId(null);
+    setQuickFlick(null);
     if (!key) return;
     const dir = s.dir;
     s.key = null;
@@ -357,10 +366,12 @@ function FlickKeyboard({
     if (key.type !== "caps") {
       const cx = r.left - g.left + r.width / 2;
       const cy = r.top - g.top + r.height / 2;
+      s.cx = cx;
+      s.cy = cy;
       popupTimerRef.current = setTimeout(() => {
         popupTimerRef.current = null;
         if (stateRef.current.key === key) {
-          vibrateForPopup();
+          setQuickFlick(null);
           setPress({ key, dir: stateRef.current.dir, cx, cy });
         }
       }, POPUP_DELAY_MS);
@@ -451,6 +462,52 @@ function FlickKeyboard({
               </div>
             );
           })}
+      </div>
+    );
+  };
+
+  const renderQuickFlickPopup = () => {
+    if (!quickFlick || press || !gridRef.current) return null;
+    const ch = quickFlick.key[quickFlick.dir];
+    if (!ch) return null;
+    const applyCase = (value: string) =>
+      activeMode === "english" ? (caps ? value.toUpperCase() : value.toLowerCase()) : value;
+    const g = gridRef.current.getBoundingClientRect();
+    const cellW = g.width / 5;
+    const cellH = g.height / 4;
+    const w = cellW * 1.08;
+    const h = cellH * 1.08;
+    const notch = 14;
+    const radius = 14;
+    const offsetX = cellW * 0.98;
+    const offsetY = cellH * 0.98;
+    const positions = {
+      u: { left: quickFlick.cx - w / 2, top: quickFlick.cy - offsetY - h / 2 },
+      d: { left: quickFlick.cx - w / 2, top: quickFlick.cy + offsetY - h / 2 },
+      l: { left: quickFlick.cx - offsetX - w / 2, top: quickFlick.cy - h / 2 },
+      r: { left: quickFlick.cx + offsetX - w / 2, top: quickFlick.cy - h / 2 },
+      c: { left: quickFlick.cx - w / 2, top: quickFlick.cy - h / 2 },
+    } satisfies Record<"c" | "l" | "r" | "u" | "d", { left: number; top: number }>;
+    const clipPaths = {
+      u: `polygon(0 ${radius}px, ${radius}px 0, calc(100% - ${radius}px) 0, 100% ${radius}px, 100% calc(100% - ${notch}px), calc(50% + ${notch}px) calc(100% - ${notch}px), 50% 100%, calc(50% - ${notch}px) calc(100% - ${notch}px), 0 calc(100% - ${notch}px))`,
+      d: `polygon(0 ${radius}px, calc(50% - ${notch}px) ${radius}px, 50% 0, calc(50% + ${notch}px) ${radius}px, 100% ${radius}px, 100% calc(100% - ${radius}px), calc(100% - ${radius}px) 100%, ${radius}px 100%, 0 calc(100% - ${radius}px))`,
+      l: `polygon(0 ${radius}px, ${radius}px 0, calc(100% - ${notch}px) 0, calc(100% - ${notch}px) calc(50% - ${notch}px), 100% 50%, calc(100% - ${notch}px) calc(50% + ${notch}px), calc(100% - ${notch}px) 100%, ${radius}px 100%, 0 calc(100% - ${radius}px))`,
+      r: `polygon(${notch}px 0, calc(100% - ${radius}px) 0, 100% ${radius}px, 100% calc(100% - ${radius}px), calc(100% - ${radius}px) 100%, ${notch}px 100%, ${notch}px calc(50% + ${notch}px), 0 50%, ${notch}px calc(50% - ${notch}px))`,
+      c: "none",
+    } satisfies Record<"c" | "l" | "r" | "u" | "d", string>;
+    const { left, top } = positions[quickFlick.dir];
+
+    return (
+      <div
+        className={cn(
+          "pointer-events-none absolute z-30 flex items-center justify-center font-medium text-[28px] leading-none",
+          isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
+          keyShadow,
+        )}
+        data-testid="quick-flick-popup"
+        style={{ left, top, width: w, height: h, clipPath: clipPaths[quickFlick.dir] }}
+      >
+        {applyCase(ch)}
       </div>
     );
   };
@@ -645,6 +702,7 @@ function FlickKeyboard({
             label: activeMode === "kana" ? "" : "",
             accent: activeMode !== "kana",
           })}
+          {renderQuickFlickPopup()}
           {renderPopup()}
         </div>
       </div>

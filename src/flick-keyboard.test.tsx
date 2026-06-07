@@ -134,23 +134,15 @@ describe("FlickKeyboard", () => {
     fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
   });
 
-  it("popup が表示されるときに触覚フィードバックを発火する", () => {
-    vi.useFakeTimers();
-    const vibrate = vi.fn();
-    Object.defineProperty(navigator, "vibrate", { configurable: true, value: vibrate });
+  it("popup が表示される前にフリックした場合は入力される文字の quick popup を表示する", () => {
+    setup({ threshold: 10 });
 
-    setup();
     fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 140, clientY: 100 });
 
-    act(() => {
-      vi.advanceTimersByTime(120);
-    });
+    expect(screen.getByTestId("quick-flick-popup")).toHaveTextContent("え");
 
-    expect(vibrate).toHaveBeenCalledWith(10);
-
-    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
-    vi.useRealTimers();
-    Reflect.deleteProperty(navigator, "vibrate");
+    fireEvent.pointerUp(window, { clientX: 140, clientY: 100 });
   });
 
   it("light テーマでは popup の非選択セル背景を白にする", () => {
@@ -160,7 +152,7 @@ describe("FlickKeyboard", () => {
     fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
 
     act(() => {
-      vi.advanceTimersByTime(120);
+      vi.advanceTimersByTime(300);
     });
 
     expect(screen.getByText("い")).toHaveClass("bg-white");
