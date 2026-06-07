@@ -477,7 +477,7 @@ function FlickKeyboard({
     const cellW = g.width / 5;
     const cellH = g.height / 4;
     const w = cellW * (quickFlick.dir === "l" || quickFlick.dir === "r" ? 1.28 : 0.98);
-    const h = cellH * (quickFlick.dir === "u" || quickFlick.dir === "d" ? 1.42 : 1.16);
+    const h = cellH * (quickFlick.dir === "u" || quickFlick.dir === "d" ? 1.42 : 0.98);
     const offsetX = cellW * 0.86;
     const offsetY = cellH * 1.02;
     const positions = {
