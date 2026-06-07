@@ -385,7 +385,7 @@ function ContentCell({
 // ── FnCell ─────────────────────────────────────────────────────────────────
 
 // タップ後にフィードバック色をどれだけ表示し続けるか
-const FN_TAP_FLASH_MS = 110;
+const FN_TAP_FLASH_MS = 50;
 
 interface FnCellProps {
   id: string;
@@ -429,21 +429,18 @@ function FnCell({ id, col, row, rowSpan, label, icon, theme, action, onEvent }: 
 
   const onPointerLeave = () => setIsPressed(false);
 
+  const onPointerUp = () => {
+    flash();
+    if (action) onEvent(action);
+  };
+
   return (
     <div
       data-key-id={id}
       onPointerDown={onPointerDown}
       onPointerLeave={onPointerLeave}
-      onPointerUp={flash}
+      onPointerUp={onPointerUp}
       onPointerCancel={onPointerLeave}
-      onClick={
-        action
-          ? () => {
-              flash();
-              onEvent(action);
-            }
-          : undefined
-      }
       className={cn(
         "flex touch-none items-center justify-center p-[3px]",
         COL_START[col],

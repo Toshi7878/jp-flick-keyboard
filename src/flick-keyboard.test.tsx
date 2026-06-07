@@ -83,10 +83,12 @@ describe("FlickKeyboard", () => {
 
   it("削除キーとスペースキーがそれぞれ delete / space イベントを発火する", () => {
     const { onEvent } = setup();
-    fireEvent.click(screen.getByLabelText("delete"));
+    fireEvent.pointerDown(screen.getByLabelText("delete"));
+    fireEvent.pointerUp(screen.getByLabelText("delete"));
     expect(onEvent).toHaveBeenCalledWith({ type: "delete" });
 
-    fireEvent.click(screen.getByText("空白"));
+    fireEvent.pointerDown(screen.getByText("空白"));
+    fireEvent.pointerUp(screen.getByText("空白"));
     expect(onEvent).toHaveBeenCalledWith({ type: "space" });
   });
 
@@ -105,7 +107,8 @@ describe("FlickKeyboard", () => {
 
   it("英字モードへの切り替えキーで modeSwitch イベントを発火する", () => {
     const { onEvent } = setup();
-    fireEvent.click(screen.getByText("ABC"));
+    fireEvent.pointerDown(screen.getByText("ABC"));
+    fireEvent.pointerUp(screen.getByText("ABC"));
     expect(onEvent).toHaveBeenCalledWith({ type: "modeSwitch", to: "english" });
   });
 
