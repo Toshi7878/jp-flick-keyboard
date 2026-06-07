@@ -59,7 +59,6 @@ const FLICK_KEYS: FlickKey[] = [
   { id: "kut", c: "、", l: "。", u: "？", r: "！", d: "…", face: "、。?!", toggle: ["、", "。", "？", "！", "…"] },
 ];
 
-// 小゛゜キー: 直前の文字を「濁点 → 半濁点 → 小書き」へ循環
 const MOD_CYCLE: Record<string, string[]> = {
   あ: ["あ", "ぁ"],
   い: ["い", "ぃ"],
@@ -101,9 +100,7 @@ function applyMod(ch: string): string | null {
   return null;
 }
 
-// 押下から方向プレビューが出るまでの遅延（タップ時にチラつかないよう少し長押しを要求する）
 const POPUP_DELAY_MS = 300;
-// 指を離してからクイックフリックのポップアップが消えるまでの遅延
 const QUICK_FLICK_HIDE_DELAY_MS = 50;
 
 function DeleteIcon({ pressed, isDark }: { pressed: boolean; isDark: boolean }) {
@@ -142,8 +139,6 @@ function dirOf(dx: number, dy: number, threshold: number): "c" | "l" | "r" | "u"
   return dy < 0 ? "u" : "d";
 }
 
-// フリックプレビューを十字に連結した1枚のパネルに見せるため、各セルは中心セルと接する辺を直角のままにし、
-// 外周にあたる角だけを丸める（中心セルは隣接する方向キーが無い側の角を丸める）。
 function popupCellCorners(slot: "c" | "l" | "r" | "u" | "d", has: { u: boolean; d: boolean; l: boolean; r: boolean }) {
   switch (slot) {
     case "u":
@@ -280,7 +275,6 @@ const ROW_START: Record<number, string> = {
 };
 
 // ── cell style variants ────────────────────────────────────────────────────
-// テーマ(light/dark)・押下状態・アクセント表示の組み合わせで決まるセルの見た目を cva で定義する。
 
 const cellShellVariants = cva(
   "flex h-full w-full items-center justify-center rounded-[7px] [transition:filter_90ms,transform_60ms,opacity_120ms]",
@@ -388,6 +382,57 @@ function ContentCell({
 
 // ── FnCell ─────────────────────────────────────────────────────────────────
 
+// 削除キー長押しでの連続削除機能。
+// 不要になった場合は ENABLE_DELETE_REPEAT 以下この区切りまでのブロックと、
+// FnCell 内の deleteRepeat 利用箇所（onPress/onRelease/consumeFired の3箇所）を削除すればよい。
+const ENABLE_DELETE_REPEAT = true;
+const DELETE_REPEAT_DELAY_MS = 400;
+const DELETE_REPEAT_INTERVAL_MS = 60;
+
+function useDeleteRepeat(active: boolean, action: FlickEvent | undefined, onEvent: (event: FlickEvent) => void) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const firedRef = useRef(false);
+
+  const stop = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    },
+    [],
+  );
+
+  const onPress = () => {
+    if (!active || !action) return;
+    firedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      firedRef.current = true;
+      onEvent(action);
+      intervalRef.current = setInterval(() => onEvent(action), DELETE_REPEAT_INTERVAL_MS);
+    }, DELETE_REPEAT_DELAY_MS);
+  };
+
+  const consumeFired = () => {
+    const fired = firedRef.current;
+    firedRef.current = false;
+    return fired;
+  };
+
+  return { onPress, onRelease: stop, consumeFired };
+}
+
 interface FnCellProps {
   id: string;
   col: number;
@@ -403,14 +448,22 @@ interface FnCellProps {
 
 function FnCell({ id, col, row, rowSpan, label, icon, theme, dimmed, action, onEvent }: FnCellProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const deleteRepeat = useDeleteRepeat(ENABLE_DELETE_REPEAT && id === "del", action, onEvent);
 
-  const onPointerDown = () => setIsPressed(true);
+  const onPointerDown = () => {
+    setIsPressed(true);
+    deleteRepeat.onPress();
+  };
 
-  const onPointerLeave = () => setIsPressed(false);
+  const onPointerLeave = () => {
+    setIsPressed(false);
+    deleteRepeat.onRelease();
+  };
 
   const onPointerUp = () => {
     setIsPressed(false);
-    if (action) onEvent(action);
+    deleteRepeat.onRelease();
+    if (action && !deleteRepeat.consumeFired()) onEvent(action);
   };
 
   return (
@@ -455,7 +508,6 @@ interface PressState {
 type QuickFlickState = PressState;
 
 // ── Popup ──────────────────────────────────────────────────────────────────
-// iOSのフリック入力候補のように、十字に並んだ方向プレビューを隙間なく1枚のパネルとして表示する。
 
 interface PopupProps {
   press: PressState;
@@ -470,7 +522,6 @@ function Popup({ press, gridRef, activeMode, caps, isDark }: PopupProps) {
   const k = press.key;
   const applyCase = (ch: string) => (activeMode === "english" ? (caps ? ch.toUpperCase() : ch.toLowerCase()) : ch);
   const g = gridRef.current.getBoundingClientRect();
-  // 1セル分の平均サイズをグリッド全体の実測サイズから逆算し、パネル(3x3セル)が背景のセルと重なる比率を保ったまま少し縮小する
   const scale = 0.98;
   const panelW = (g.width / 5) * 3 * scale;
   const panelH = (g.height / 4) * 3 * scale;
@@ -590,8 +641,6 @@ function QuickFlickPopup({ quickFlick, gridRef, activeMode, caps, isDark }: Quic
   );
 }
 
-// PWA (ホーム画面に追加して起動した状態) かどうかを判定する。
-// iOS Safari は display-mode メディアクエリではなく navigator.standalone で判定する必要がある。
 function useIsStandalone(): boolean {
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -736,7 +785,6 @@ function FlickKeyboard({
         isStandalone && "pb-[max(env(safe-area-inset-bottom),60px)]",
       )}
     >
-      {/* top candidate strip */}
       {candidateBar ?? <div className="h-10" />}
 
       {/* key grid */}
