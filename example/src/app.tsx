@@ -41,35 +41,37 @@ export function App() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col gap-4 bg-neutral-100 p-4">
-      <h1 className="font-semibold text-lg">jp-flick-keyboard サンプル</h1>
+    <div className="mx-auto flex h-dvh max-w-sm flex-col overflow-hidden bg-neutral-100">
+      <div className="flex shrink-0 flex-col gap-3 p-4 pb-2">
+        <h1 className="font-semibold text-lg">jp-flick-keyboard サンプル</h1>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-          className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm text-white"
-        >
-          テーマ: {theme === "light" ? "ライト" : "ダーク"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setText("")}
-          className="rounded-md bg-neutral-300 px-3 py-1.5 text-neutral-800 text-sm"
-        >
-          クリア
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+            className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm text-white"
+          >
+            テーマ: {theme === "light" ? "ライト" : "ダーク"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setText("")}
+            className="rounded-md bg-neutral-300 px-3 py-1.5 text-neutral-800 text-sm"
+          >
+            クリア
+          </button>
+        </div>
       </div>
 
-      <div className="min-h-24 whitespace-pre-wrap rounded-md border border-neutral-300 bg-white p-3 text-base">
+      <div className="mx-4 min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-md border border-neutral-300 bg-white p-3 text-base">
         {text || <span className="text-neutral-400">ここに入力結果が表示されます</span>}
       </div>
 
-      <div className="text-neutral-500 text-xs">
+      <div className="shrink-0 px-4 py-2 text-neutral-500 text-xs">
         現在のモード: {mode} / 行頭: {isLineStart ? "はい" : "いいえ"}
       </div>
 
-      <div className="-mx-4 mt-auto -mb-4">
+      <div className="shrink-0">
         <FlickKeyboard onEvent={handleEvent} theme={theme} mode={mode} isLineStart={isLineStart} />
       </div>
     </div>
