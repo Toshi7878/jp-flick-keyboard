@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "./cn";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -236,6 +236,25 @@ interface PressState {
   cy: number;
 }
 
+// PWA (ホーム画面に追加して起動した状態) かどうかを判定する。
+// iOS Safari は display-mode メディアクエリではなく navigator.standalone で判定する必要がある。
+function useIsStandalone(): boolean {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(display-mode: standalone)");
+    const update = () => {
+      const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      setIsStandalone(mql.matches || iosStandalone);
+    };
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+
+  return isStandalone;
+}
+
 function FlickKeyboard({
   keys = FLICK_KEYS,
   onEvent,
@@ -245,6 +264,7 @@ function FlickKeyboard({
   isLineStart = false,
 }: FlickKeyboardProps) {
   const isDark = theme === "dark";
+  const isStandalone = useIsStandalone();
   const gridRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<{ key: FlickKey | null; sx: number; sy: number; dir: "c" | "l" | "r" | "u" | "d" }>({
     key: null,
@@ -502,6 +522,8 @@ function FlickKeyboard({
       className={cn(
         "relative box-border flex w-full flex-col px-[5px] pt-[5px]",
         isDark ? "bg-[#4A4A4A]" : "bg-[#CBCED3]",
+        // PWA起動時はホームインジケーター分のセーフエリアを余白として確保する
+        isStandalone && "pb-[max(env(safe-area-inset-bottom),20px)]",
       )}
     >
       {/* top candidate strip */}

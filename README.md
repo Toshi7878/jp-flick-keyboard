@@ -63,6 +63,8 @@ function Example() {
 | `mode` | `"kana" \| "english" \| "number"` | `"kana"` | 表示モード |
 | `isLineStart` | `boolean` | `false` | 行頭かどうか（濁点キーの表示切り替えに使用） |
 
+PWA（ホーム画面に追加して起動した状態）で動作している場合は自動検出し、ホームインジケーター分の余白（`env(safe-area-inset-bottom)`、最小 20px）をキーボード下部に追加します。
+
 ## イベント (`FlickEvent`)
 
 - `{ type: "tap", key }` — キーをタップ（フリックなし）
