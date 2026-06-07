@@ -476,10 +476,10 @@ function FlickKeyboard({
     const g = gridRef.current.getBoundingClientRect();
     const cellW = g.width / 5;
     const cellH = g.height / 4;
-    const w = cellW * 1.08;
-    const h = cellH * 1.08;
-    const offsetX = cellW * 0.98;
-    const offsetY = cellH * 0.98;
+    const w = cellW * (quickFlick.dir === "l" || quickFlick.dir === "r" ? 1.28 : 0.98);
+    const h = cellH * (quickFlick.dir === "u" || quickFlick.dir === "d" ? 1.42 : 1.16);
+    const offsetX = cellW * 0.86;
+    const offsetY = cellH * 0.86;
     const positions = {
       u: { left: quickFlick.cx - w / 2, top: quickFlick.cy - offsetY - h / 2 },
       d: { left: quickFlick.cx - w / 2, top: quickFlick.cy + offsetY - h / 2 },
@@ -487,26 +487,46 @@ function FlickKeyboard({
       r: { left: quickFlick.cx + offsetX - w / 2, top: quickFlick.cy - h / 2 },
       c: { left: quickFlick.cx - w / 2, top: quickFlick.cy - h / 2 },
     } satisfies Record<"c" | "l" | "r" | "u" | "d", { left: number; top: number }>;
-    const clipPaths = {
-      u: "polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)",
-      d: "polygon(0 22%, 50% 0, 100% 22%, 100% 100%, 0 100%)",
-      l: "polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%)",
-      r: "polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%)",
-      c: "none",
+    const shapePaths = {
+      u: "M8 0H92Q100 0 100 8V66Q100 70 96 73L57 97Q50 100 43 97L4 73Q0 70 0 66V8Q0 0 8 0Z",
+      d: "M4 27L43 3Q50 0 57 3L96 27Q100 30 100 34V92Q100 100 92 100H8Q0 100 0 92V34Q0 30 4 27Z",
+      l: "M8 0H76Q81 0 84 5L98 44Q100 50 98 56L84 95Q81 100 76 100H8Q0 100 0 92V8Q0 0 8 0Z",
+      r: "M24 0H92Q100 0 100 8V92Q100 100 92 100H24Q19 100 16 95L2 56Q0 50 2 44L16 5Q19 0 24 0Z",
+      c: "M8 0H92Q100 0 100 8V92Q100 100 92 100H8Q0 100 0 92V8Q0 0 8 0Z",
     } satisfies Record<"c" | "l" | "r" | "u" | "d", string>;
+    const textTransforms = {
+      u: "translateY(-8px)",
+      d: "translateY(8px)",
+      l: "translateX(-8px)",
+      r: "translateX(8px)",
+      c: undefined,
+    } satisfies Record<"c" | "l" | "r" | "u" | "d", string | undefined>;
     const { left, top } = positions[quickFlick.dir];
 
     return (
       <div
         className={cn(
-          "pointer-events-none absolute z-30 flex items-center justify-center rounded-[7px] font-medium text-[28px] leading-none",
-          isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
-          keyShadow,
+          "pointer-events-none absolute z-30 flex items-center justify-center font-medium text-[28px] leading-none",
+          isDark ? "text-white" : "text-[#1A1A1A]",
         )}
         data-testid="quick-flick-popup"
-        style={{ left, top, width: w, height: h, clipPath: clipPaths[quickFlick.dir] }}
+        style={{ left, top, width: w, height: h }}
       >
-        {applyCase(ch)}
+        <svg
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full"
+          preserveAspectRatio="none"
+          viewBox="0 0 100 100"
+        >
+          <path
+            className={cn(isDark ? "fill-[#5B5B5E]" : "fill-white")}
+            d={shapePaths[quickFlick.dir]}
+            data-testid="quick-flick-shape"
+          />
+        </svg>
+        <span className="relative" data-testid="quick-flick-text" style={{ transform: textTransforms[quickFlick.dir] }}>
+          {applyCase(ch)}
+        </span>
       </div>
     );
   };

@@ -143,8 +143,11 @@ describe("FlickKeyboard", () => {
 
     const quickPopup = screen.getByTestId("quick-flick-popup");
     expect(quickPopup).toHaveTextContent("え");
-    expect(quickPopup).toHaveClass("rounded-[7px]");
-    expect(quickPopup).toHaveStyle({ clipPath: "polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%)" });
+    expect(screen.getByTestId("quick-flick-shape")).toHaveAttribute(
+      "d",
+      "M24 0H92Q100 0 100 8V92Q100 100 92 100H24Q19 100 16 95L2 56Q0 50 2 44L16 5Q19 0 24 0Z",
+    );
+    expect(screen.getByTestId("quick-flick-text")).toHaveStyle({ transform: "translateX(8px)" });
 
     act(() => {
       vi.advanceTimersByTime(300);
