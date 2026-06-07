@@ -533,7 +533,7 @@ function FlickKeyboard({
 
   // ── cell factories ─────────────────────────────────────────────
   const cellBase = cn(
-    "flex h-full w-full select-none items-center justify-center rounded-[7px]",
+    "flex h-full w-full items-center justify-center rounded-[7px]",
     "[transition:filter_90ms,transform_60ms]",
     keyShadow,
   );
@@ -663,7 +663,7 @@ function FlickKeyboard({
   return (
     <div
       className={cn(
-        "relative box-border flex w-full flex-col px-[5px] pt-[5px]",
+        "relative box-border flex w-full select-none flex-col px-[5px] pt-[5px]",
         isDark ? "bg-[#4A4A4A]" : "bg-[#CBCED3]",
         // PWA起動時はホームインジケーター分のセーフエリアを余白として確保する
         isStandalone && "pb-[max(env(safe-area-inset-bottom),60px)]",
