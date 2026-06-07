@@ -90,4 +90,5 @@ pnpm example:dev
 pnpm install
 pnpm build       # tsup でビルド (dist/ に ESM/CJS + 型定義を出力)
 pnpm typecheck
+pnpm test        # vitest + Testing Library によるユニット/コンポーネントテスト
 ```
