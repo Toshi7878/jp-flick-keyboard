@@ -103,7 +103,7 @@ function applyMod(ch: string): string | null {
 // 押下から方向プレビューが出るまでの遅延（タップ時にチラつかないよう少し長押しを要求する）
 const POPUP_DELAY_MS = 300;
 // 指を離してからクイックフリックのポップアップが消えるまでの遅延
-const QUICK_FLICK_HIDE_DELAY_MS = 80;
+const QUICK_FLICK_HIDE_DELAY_MS = 50;
 
 function DeleteIcon({ pressed, isDark }: { pressed: boolean; isDark: boolean }) {
   return (
