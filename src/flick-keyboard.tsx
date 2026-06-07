@@ -301,8 +301,8 @@ const contentCellSurfaceVariants = cva("", {
   compoundVariants: [
     { theme: "light", pressed: false, class: "bg-white text-[#1A1A1A]" },
     { theme: "light", pressed: true, class: "bg-[#E3E5EA] text-[#1A1A1A]" },
-    { theme: "dark", pressed: false, class: "bg-[#898989] text-white" },
-    { theme: "dark", pressed: true, class: "bg-[#8F949C] text-white" },
+    { theme: "dark", pressed: false, class: "bg-[#434345] text-white" },
+    { theme: "dark", pressed: true, class: "bg-[#2d2e30] text-white" },
   ],
 });
 
@@ -313,9 +313,9 @@ const fnCellSurfaceVariants = cva("", {
   },
   compoundVariants: [
     { pressed: true, theme: "light", class: "bg-[#E3E5EA] text-[#1A1A1A]" },
-    { pressed: true, theme: "dark", class: "bg-[#8F949C] text-white" },
+    { pressed: true, theme: "dark", class: "bg-[#2d2e30] text-white" },
     { pressed: false, theme: "light", class: "bg-[#B4B8C0] text-[#1A1A1A]" },
-    { pressed: false, theme: "dark", class: "bg-[#6E6E6E] text-white" },
+    { pressed: false, theme: "dark", class: "bg-[#434345] text-white" },
   ],
 });
 
@@ -498,7 +498,7 @@ function Popup({ press, gridRef, activeMode, caps, isDark }: PopupProps) {
                 "flex items-center justify-center text-xl leading-none",
                 "[transition:background-color_80ms,color_80ms]",
                 popupCellCorners(slot, has),
-                on ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
+                on ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#434345] text-white" : "bg-white text-[#1A1A1A]",
               )}
               style={{ gridRow: row, gridColumn: col }}
             >
@@ -572,7 +572,7 @@ function QuickFlickPopup({ quickFlick, gridRef, activeMode, caps, isDark }: Quic
         viewBox="0 0 100 100"
       >
         <path
-          className={cn(isDark ? "fill-[#5B5B5E]" : "fill-white")}
+          className={cn(isDark ? "fill-[#434345]" : "fill-white")}
           d={shapePaths[quickFlick.dir]}
           data-testid="quick-flick-shape"
         />
@@ -724,7 +724,7 @@ function FlickKeyboard({
     <div
       className={cn(
         "relative box-border flex w-full select-none flex-col px-[5px] pt-[5px]",
-        isDark ? "bg-[#4A4A4A]" : "bg-[#CBCED3]",
+        isDark ? "bg-[#1e1f21]" : "bg-[#CBCED3]",
         // PWA起動時はホームインジケーター分のセーフエリアを余白として確保する
         isStandalone && "pb-[max(env(safe-area-inset-bottom),60px)]",
       )}
