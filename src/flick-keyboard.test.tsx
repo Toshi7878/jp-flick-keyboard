@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { applyMod, dirOf, type FlickEvent, FlickKeyboard } from "./flick-keyboard";
 
@@ -44,8 +44,8 @@ describe("dirOf", () => {
 
 function setup(props?: Partial<React.ComponentProps<typeof FlickKeyboard>>) {
   const onEvent = vi.fn<(event: FlickEvent) => void>();
-  render(<FlickKeyboard onEvent={onEvent} {...props} />);
-  return { onEvent };
+  const view = render(<FlickKeyboard onEvent={onEvent} {...props} />);
+  return { onEvent, ...view };
 }
 
 describe("FlickKeyboard", () => {
@@ -83,17 +83,106 @@ describe("FlickKeyboard", () => {
 
   it("削除キーとスペースキーがそれぞれ delete / space イベントを発火する", () => {
     const { onEvent } = setup();
-    fireEvent.click(screen.getByText("⌫"));
+    fireEvent.click(screen.getByLabelText("delete"));
     expect(onEvent).toHaveBeenCalledWith({ type: "delete" });
 
     fireEvent.click(screen.getByText("空白"));
     expect(onEvent).toHaveBeenCalledWith({ type: "space" });
   });
 
+  it("delete アイコンを大きめに表示し、押したときに fill を黒くする", () => {
+    setup();
+    const deleteIcon = screen.getByLabelText("delete");
+    const deleteShape = deleteIcon.firstElementChild;
+
+    expect(deleteIcon).toHaveClass("h-6", "w-6");
+    expect(deleteShape).toHaveClass("fill-none");
+
+    fireEvent.pointerDown(deleteIcon);
+
+    expect(deleteShape).toHaveClass("fill-black");
+  });
+
   it("英字モードへの切り替えキーで modeSwitch イベントを発火する", () => {
     const { onEvent } = setup();
     fireEvent.click(screen.getByText("ABC"));
     expect(onEvent).toHaveBeenCalledWith({ type: "modeSwitch", to: "english" });
+  });
+
+  it("fnCell をタップすると light テーマの押されたフィードバック色に切り替わる", () => {
+    setup();
+    const fnKey = screen.getByText("ABC");
+
+    expect(fnKey).toHaveClass("bg-[#B4B8C0]");
+
+    fireEvent.pointerDown(fnKey);
+
+    expect(fnKey).toHaveClass("bg-[#E3E5EA]");
+  });
+
+  it("contentCell をタップすると light テーマの押されたフィードバック色に切り替わる", () => {
+    setup({ mode: "english" });
+    const keyFace = screen.getByText("DEF");
+    const contentKey = keyFace.parentElement;
+
+    expect(contentKey).toHaveClass("bg-white");
+
+    fireEvent.pointerDown(keyFace, { clientX: 100, clientY: 100 });
+
+    expect(contentKey).toHaveClass("bg-[#E3E5EA]");
+
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
+  });
+
+  it("popup が表示されるときに触覚フィードバックを発火する", () => {
+    vi.useFakeTimers();
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { configurable: true, value: vibrate });
+
+    setup();
+    fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
+
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+
+    expect(vibrate).toHaveBeenCalledWith(10);
+
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
+    vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "vibrate");
+  });
+
+  it("light テーマでは popup の非選択セル背景を白にする", () => {
+    vi.useFakeTimers();
+
+    setup();
+    fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
+
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+
+    expect(screen.getByText("い")).toHaveClass("bg-white");
+
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
+    vi.useRealTimers();
+  });
+
+  it("action がない controlCell もタップすると light テーマの押されたフィードバック色に切り替わる", () => {
+    const { container } = setup();
+    const controlCell = container.querySelector('[data-key-id="mod2"]');
+    const controlKey = controlCell?.firstElementChild;
+
+    expect(controlKey).toHaveClass("bg-[#B4B8C0]");
+
+    fireEvent.pointerDown(controlCell as Element);
+
+    expect(controlKey).toHaveClass("bg-[#E3E5EA]");
+
+    fireEvent.pointerUp(controlCell as Element);
+
+    expect(controlKey).toHaveClass("bg-[#E3E5EA]");
   });
 
   it("isLineStart が true のとき mod キーに行頭インジケーターを表示する", () => {

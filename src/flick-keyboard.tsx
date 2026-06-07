@@ -99,6 +99,30 @@ function applyMod(ch: string): string | null {
 
 // 押下から方向プレビューが出るまでの遅延（タップ時にチラつかないよう少し長押しを要求する）
 const POPUP_DELAY_MS = 120;
+const HAPTIC_FEEDBACK_MS = 10;
+
+function vibrateForPopup() {
+  navigator.vibrate?.(HAPTIC_FEEDBACK_MS);
+}
+
+function DeleteIcon({ pressed }: { pressed: boolean }) {
+  return (
+    <svg aria-label="delete" className="h-6 w-6" role="img" viewBox="0 0 28 24">
+      <path
+        className={cn(pressed ? "fill-black stroke-black" : "fill-none stroke-current")}
+        d="M10.4 4.5h12.3a2.8 2.8 0 0 1 2.8 2.8v9.4a2.8 2.8 0 0 1-2.8 2.8H10.4a2.3 2.3 0 0 1-1.7-.8L2.8 12l5.9-6.7a2.3 2.3 0 0 1 1.7-.8Z"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+      <path
+        className={cn(pressed ? "stroke-white" : "stroke-current")}
+        d="m14.1 9.1 5.8 5.8m0-5.8-5.8 5.8"
+        strokeLinecap="round"
+        strokeWidth="2.2"
+      />
+    </svg>
+  );
+}
 
 function dirOf(dx: number, dy: number, threshold: number): "c" | "l" | "r" | "u" | "d" {
   if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return "c";
@@ -274,7 +298,9 @@ function FlickKeyboard({
   });
   const [press, setPress] = useState<PressState | null>(null);
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
   const [tapId, setTapId] = useState<string | null>(null);
+  const fnTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [caps, setCaps] = useState(true);
 
   const activeMode = mode ?? "kana";
@@ -303,6 +329,7 @@ function FlickKeyboard({
       clearTimeout(popupTimerRef.current);
       popupTimerRef.current = null;
     }
+    setPressedKeyId(null);
     if (!key) return;
     const dir = s.dir;
     s.key = null;
@@ -326,25 +353,54 @@ function FlickKeyboard({
     s.sx = e.clientX;
     s.sy = e.clientY;
     s.dir = "c";
+    setPressedKeyId(key.id);
     if (key.type !== "caps") {
       const cx = r.left - g.left + r.width / 2;
       const cy = r.top - g.top + r.height / 2;
       popupTimerRef.current = setTimeout(() => {
         popupTimerRef.current = null;
-        if (stateRef.current.key === key) setPress({ key, dir: stateRef.current.dir, cx, cy });
+        if (stateRef.current.key === key) {
+          vibrateForPopup();
+          setPress({ key, dir: stateRef.current.dir, cx, cy });
+        }
       }, POPUP_DELAY_MS);
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   };
 
-  const fnTap = (id: string, ev: FlickEvent) => {
+  const flashFnCell = (id: string) => {
+    if (fnTapTimerRef.current) clearTimeout(fnTapTimerRef.current);
     setTapId(id);
-    setTimeout(() => setTapId(null), 110);
+    fnTapTimerRef.current = setTimeout(() => {
+      fnTapTimerRef.current = null;
+      setTapId(null);
+    }, 110);
+  };
+
+  const fnTap = (id: string, ev: FlickEvent) => {
+    flashFnCell(id);
     onEvent(ev);
   };
 
+  const fnDown = (id: string) => {
+    if (fnTapTimerRef.current) {
+      clearTimeout(fnTapTimerRef.current);
+      fnTapTimerRef.current = null;
+    }
+    setTapId(id);
+  };
+
+  const fnUp = () => {
+    setTapId(null);
+  };
+
+  const fnRelease = (id: string) => {
+    flashFnCell(id);
+  };
+
   const keyShadow = isDark ? "shadow-[0_1px_2px_rgba(0,0,0,0.45)]" : "shadow-[0_1px_0_rgba(0,0,0,0.30)]";
+  const pressedCellClass = isDark ? "bg-[#8F949C] text-white" : "bg-[#E3E5EA] text-[#1A1A1A]";
 
   // ── popup ──────────────────────────────────────────────────────
   // iOSのフリック入力候補のように、十字に並んだ方向プレビューを隙間なく1枚のパネルとして表示する。
@@ -387,7 +443,7 @@ function FlickKeyboard({
                   "flex items-center justify-center text-xl leading-none",
                   "[transition:background-color_80ms,color_80ms]",
                   popupCellCorners(slot, has),
-                  on ? "bg-[#2E92FA] text-white" : "bg-[#5B5B5E] text-white",
+                  on ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
                 )}
                 style={{ gridRow: row, gridColumn: col }}
               >
@@ -426,7 +482,7 @@ function FlickKeyboard({
     const pos = activePosMap[k.id];
     if (!pos) return null;
     const [col, row] = pos;
-    const down = press?.key.id === k.id;
+    const down = pressedKeyId === k.id || press?.key.id === k.id;
     return (
       <div
         key={k.id}
@@ -442,7 +498,7 @@ function FlickKeyboard({
             cellBase,
             "flex-col gap-px tracking-[0.5px] [font-variant-ligatures:none]",
             getCellTextClass(k),
-            isDark ? "bg-[#898989] text-white" : "bg-white text-[#1A1A1A]",
+            down ? pressedCellClass : isDark ? "bg-[#898989] text-white" : "bg-white text-[#1A1A1A]",
           )}
           style={{
             transform: down ? "scale(0.96)" : undefined,
@@ -494,6 +550,11 @@ function FlickKeyboard({
     return (
       <div
         key={id}
+        data-key-id={id}
+        onPointerDown={() => fnDown(id)}
+        onPointerLeave={fnUp}
+        onPointerUp={() => fnRelease(id)}
+        onPointerCancel={fnUp}
         onClick={action ? () => fnTap(id, action) : undefined}
         className={cn(
           "flex touch-none items-center justify-center p-[3px]",
@@ -507,11 +568,17 @@ function FlickKeyboard({
           className={cn(
             cellBase,
             "font-medium text-sm tracking-[0.3px]",
-            accent ? "bg-[#2E92FA] text-white" : isDark ? "bg-[#6E6E6E] text-white" : "bg-[#B4B8C0] text-[#1A1A1A]",
+            down
+              ? pressedCellClass
+              : accent
+                ? "bg-[#2E92FA] text-white"
+                : isDark
+                  ? "bg-[#6E6E6E] text-white"
+                  : "bg-[#B4B8C0] text-[#1A1A1A]",
           )}
           style={{ filter: down ? "brightness(0.9)" : undefined }}
         >
-          {icon ?? label}
+          {id === "del" ? <DeleteIcon pressed={down} /> : (icon ?? label)}
         </div>
       </div>
     );
@@ -568,7 +635,7 @@ function FlickKeyboard({
           {/* content keys */}
           {activeKeys.filter((k) => activePosMap[k.id]).map(contentCell)}
           {/* right column */}
-          {fnCell({ id: "del", col: 5, row: 1, label: "⌫", action: { type: "delete" } })}
+          {fnCell({ id: "del", col: 5, row: 1, action: { type: "delete" } })}
           {fnCell({ id: "space", col: 5, row: 2, label: "空白", action: { type: "space" } })}
           {fnCell({
             id: "next",
