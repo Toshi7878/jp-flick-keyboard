@@ -141,7 +141,10 @@ describe("FlickKeyboard", () => {
     fireEvent.pointerDown(screen.getByText("あ"), { clientX: 100, clientY: 100 });
     fireEvent.pointerMove(window, { clientX: 140, clientY: 100 });
 
-    expect(screen.getByTestId("quick-flick-popup")).toHaveTextContent("え");
+    const quickPopup = screen.getByTestId("quick-flick-popup");
+    expect(quickPopup).toHaveTextContent("え");
+    expect(quickPopup).toHaveClass("rounded-[7px]");
+    expect(quickPopup).toHaveStyle({ clipPath: "polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%)" });
 
     act(() => {
       vi.advanceTimersByTime(300);

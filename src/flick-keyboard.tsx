@@ -478,8 +478,6 @@ function FlickKeyboard({
     const cellH = g.height / 4;
     const w = cellW * 1.08;
     const h = cellH * 1.08;
-    const notch = 14;
-    const radius = 14;
     const offsetX = cellW * 0.98;
     const offsetY = cellH * 0.98;
     const positions = {
@@ -490,10 +488,10 @@ function FlickKeyboard({
       c: { left: quickFlick.cx - w / 2, top: quickFlick.cy - h / 2 },
     } satisfies Record<"c" | "l" | "r" | "u" | "d", { left: number; top: number }>;
     const clipPaths = {
-      u: `polygon(0 ${radius}px, ${radius}px 0, calc(100% - ${radius}px) 0, 100% ${radius}px, 100% calc(100% - ${notch}px), calc(50% + ${notch}px) calc(100% - ${notch}px), 50% 100%, calc(50% - ${notch}px) calc(100% - ${notch}px), 0 calc(100% - ${notch}px))`,
-      d: `polygon(0 ${radius}px, calc(50% - ${notch}px) ${radius}px, 50% 0, calc(50% + ${notch}px) ${radius}px, 100% ${radius}px, 100% calc(100% - ${radius}px), calc(100% - ${radius}px) 100%, ${radius}px 100%, 0 calc(100% - ${radius}px))`,
-      l: `polygon(0 ${radius}px, ${radius}px 0, calc(100% - ${notch}px) 0, calc(100% - ${notch}px) calc(50% - ${notch}px), 100% 50%, calc(100% - ${notch}px) calc(50% + ${notch}px), calc(100% - ${notch}px) 100%, ${radius}px 100%, 0 calc(100% - ${radius}px))`,
-      r: `polygon(${notch}px 0, calc(100% - ${radius}px) 0, 100% ${radius}px, 100% calc(100% - ${radius}px), calc(100% - ${radius}px) 100%, ${notch}px 100%, ${notch}px calc(50% + ${notch}px), 0 50%, ${notch}px calc(50% - ${notch}px))`,
+      u: "polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)",
+      d: "polygon(0 22%, 50% 0, 100% 22%, 100% 100%, 0 100%)",
+      l: "polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%)",
+      r: "polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%)",
       c: "none",
     } satisfies Record<"c" | "l" | "r" | "u" | "d", string>;
     const { left, top } = positions[quickFlick.dir];
@@ -501,7 +499,7 @@ function FlickKeyboard({
     return (
       <div
         className={cn(
-          "pointer-events-none absolute z-30 flex items-center justify-center font-medium text-[28px] leading-none",
+          "pointer-events-none absolute z-30 flex items-center justify-center rounded-[7px] font-medium text-[28px] leading-none",
           isDark ? "bg-[#5B5B5E] text-white" : "bg-white text-[#1A1A1A]",
           keyShadow,
         )}
