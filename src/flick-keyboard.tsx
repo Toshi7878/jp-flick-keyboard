@@ -221,7 +221,7 @@ function getDisplayFace(k: FlickKey, activeMode: FlickMode, caps: boolean): stri
 }
 
 function getCellTextClass(k: FlickKey, activeMode: FlickMode): string {
-  if (activeMode === "kana") return k.id === "mod" || k.id === "kut" ? "text-[19px]" : "text-[22px]";
+  if (activeMode === "kana") return k.id === "mod" || k.id === "kut" ? "text-[19px]" : "text-[24px]";
   if (activeMode === "english") return LETTER_KEY_IDS.has(k.id) ? "text-[17px]" : "text-sm";
   return k.id === "nbr" || k.id === "npu" ? "text-[15px]" : "text-[22px]";
 }
